@@ -24,7 +24,8 @@ def process_files(questions_compressed, pictures_pdf, temp_dir):
     decompress_questions_pdf(questions_compressed, questions_file)
     correct_answers = construct_correct_answer_list(questions_file)
     question_list = parse_text_from_pdf(questions_compressed, temp_dir)
-    for line in question_list:
+    output_matrix = create_output_matrix(question_list, correct_answers)
+    for line in output_matrix:
         print(line)
 
 
@@ -147,6 +148,28 @@ def parse_text_from_pdf(questions_pdf: str, temp_dir: str) -> \
                 current_q[5] += (' ' + line)
 
     return question_list
+
+
+def create_output_matrix(question_list, correct_answers):
+    assert(len(question_list) == len(correct_answers))
+    result = []
+    for i in range(len(question_list)):
+        question, img_number, ans_a, ans_b, ans_c, ans_d = question_list[i]
+        correct_index = correct_answers[i]
+        answers = [ans_a, ans_b, ans_c, ans_d]
+        correct_answer = answers.pop(correct_index)
+        if img_number != 0:
+            # TODO: add the correct image suffix
+            # We'll need the directory of extracted images to do this.
+            img_html = '<img src="%s" alt="Abbildung %d"><br>' % \
+                       (make_image_name(img_number), img_number)
+            question = img_html + question
+        result.append([question, correct_answer] + answers)
+    return result
+
+
+def make_image_name(image_number):
+    return 'DHV-Fragen-Abbildung-%03d' % image_number
 
 
 if __name__ == '__main__':
