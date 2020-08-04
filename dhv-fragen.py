@@ -6,7 +6,7 @@ import tempfile
 import os
 import re
 import sys
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from enum import Enum
 
 
@@ -58,7 +58,7 @@ def construct_correct_answer_list(questions_file):
 
 
 def parse_text_from_pdf(questions_pdf: str, temp_dir: str) -> \
-        List[Tuple[str, ...]]:
+        List[Tuple[Union[str, int], ...]]:
     questions_textfile = os.path.join(temp_dir, 'questions.txt')
     subprocess.run(['pdftotext', '-layout', questions_pdf,
                     questions_textfile], check=True)
@@ -76,7 +76,8 @@ def parse_text_from_pdf(questions_pdf: str, temp_dir: str) -> \
     # TODO: handle question numbers properly
     # Parse the question number and increment the section if the question
     # number has reset to 1.
-    section = 0
+    current_section = 1
+    last_question_number = 0
     state = State.ignore
     current_q = []
     question_list = []
@@ -84,47 +85,66 @@ def parse_text_from_pdf(questions_pdf: str, temp_dir: str) -> \
     for line_raw in lines:
         line = re.sub(' +', ' ', line_raw.strip())
         if state == State.ignore:
-            if re.match(r'^\d+\) ', line):
+            match = re.match(r'^(\d+)\) (.*)$', line)
+            if match:
                 # start of question
                 assert(len(current_q) == 0)
-                current_q.append(line)
+                q_number = int(match.group(1))
+                if q_number < last_question_number:
+                    current_section += 1
+                q_text = match.group(2)
+                q_match = re.match(r'^Abbildung (\d+): *(.*)$', q_text)
+                if q_match:
+                    img_number = int(q_match.group(1))
+                    q_text = q_match.group(2)
+                else:
+                    img_number = 0
+
+                current_q.append('%d.%d. %s' %
+                                 (current_section, q_number, q_text))
+                current_q.append(img_number)
                 state = State.question
+                last_question_number = q_number
         elif state == state.question:
-            assert (len(current_q) == 1)
-            if re.match(r'^A\) ', line):
-                current_q.append(line)
+            assert (len(current_q) == 2)
+            match = re.match(r'^A\) *(.*)$', line)
+            if match:
+                current_q.append(match.group(1))
                 state = State.answer_a
             else:
                 current_q[0] += (' ' + line)
         elif state == state.answer_a:
-            assert (len(current_q) == 2)
-            if re.match(r'^B\) ', line):
-                current_q.append(line)
+            assert (len(current_q) == 3)
+            match = re.match(r'^B\) *(.*)$', line)
+            if match:
+                current_q.append(match.group(1))
                 state = State.answer_b
             else:
-                current_q[1] += (' ' + line)
+                current_q[2] += (' ' + line)
         elif state == state.answer_b:
-            assert (len(current_q) == 3)
-            if re.match(r'^C\) ', line):
-                current_q.append(line)
+            assert (len(current_q) == 4)
+            match = re.match(r'^C\) *(.*)$', line)
+            if match:
+                current_q.append(match.group(1))
                 state = State.answer_c
             else:
-                current_q[2] += (' ' + line)
+                current_q[3] += (' ' + line)
         elif state == state.answer_c:
-            assert (len(current_q) == 4)
-            if re.match(r'^D\) ', line):
-                current_q.append(line)
+            assert (len(current_q) == 5)
+            match = re.match(r'^D\) *(.*)$', line)
+            if match:
+                current_q.append(match.group(1))
                 state = State.answer_d
             else:
-                current_q[3] += (' ' + line)
+                current_q[4] += (' ' + line)
         elif state == state.answer_d:
-            assert (len(current_q) == 5)
+            assert (len(current_q) == 6)
             if line == '':
                 state = State.ignore
                 question_list.append(tuple(current_q))
                 current_q = []
             else:
-                current_q[4] += (' ' + line)
+                current_q[5] += (' ' + line)
 
     return question_list
 
