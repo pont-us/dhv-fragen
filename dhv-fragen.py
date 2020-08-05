@@ -36,7 +36,7 @@ def process_files(questions_compressed, pictures_pdf, pictures_dir, temp_dir):
     # print(len(image_numbers))
 
 
-def decompress_questions_pdf(source, destination):
+def decompress_questions_pdf(source: str, destination: str) -> None:
     cmd = ['qpdf', '--decode-level=all', '--compress-streams=n',
            source, destination]
     result = subprocess.run(cmd, stdout=sys.stdout)
@@ -44,7 +44,7 @@ def decompress_questions_pdf(source, destination):
         raise subprocess.CalledProcessError(result.returncode, cmd)
 
 
-def construct_correct_answer_list(questions_file):
+def construct_correct_answer_list(questions_file: str) -> List[int]:
     # Mapping quadruplets of right/wrong answers like this gives us built-in
     # sanity checking: we'll get an exception for any quadruplet that doesn't
     # contain exactly one correct answer.
@@ -154,7 +154,8 @@ def parse_text_from_pdf(questions_pdf: str, temp_dir: str) -> \
     return question_list
 
 
-def create_output_matrix(question_list, correct_answers):
+def create_output_matrix(question_list: List[Tuple[Union[str, int], ...]],
+                         correct_answers: List[int]) -> List[List[str]]:
     assert(len(question_list) == len(correct_answers))
     result = []
     for i in range(len(question_list)):
@@ -171,7 +172,7 @@ def create_output_matrix(question_list, correct_answers):
     return result
 
 
-def extract_image_numbers(images_filename, temp_dir):
+def extract_image_numbers(images_filename: str, temp_dir: str) -> List[int]:
     text_filename = os.path.join(temp_dir, 'images.txt')
     subprocess.run(['pdftotext', images_filename, text_filename],
                    check=True)
@@ -185,7 +186,8 @@ def extract_image_numbers(images_filename, temp_dir):
     return result
 
 
-def extract_images(images_pdf, images_dir, image_numbers):
+def extract_images(images_pdf: str, images_dir: str,
+                   image_numbers: List[int]) -> None:
     # Empty the directory of any existing files
     for root, dirs, files in os.walk(images_dir):
         for f in files:
@@ -215,7 +217,7 @@ def extract_images(images_pdf, images_dir, image_numbers):
             image_index += 1
 
 
-def make_image_name(image_number):
+def make_image_name(image_number: int) -> str:
     return 'DHV-Fragen-Abbildung-%03d' % image_number
 
 
