@@ -8,6 +8,7 @@ import re
 import sys
 from typing import Tuple, List, Union, Mapping
 from enum import Enum
+import csv
 
 
 def main():
@@ -15,10 +16,15 @@ def main():
     parser.add_argument('questions_pdf')
     parser.add_argument('pictures_pdf')
     parser.add_argument('pictures_output_dir')
+    parser.add_argument('output_tsv')
     args = parser.parse_args()
     with tempfile.TemporaryDirectory() as temp_dir:
-        process_files(args.questions_pdf, args.pictures_pdf,
-                      args.pictures_output_dir, temp_dir)
+        matrix = process_files(args.questions_pdf, args.pictures_pdf,
+                               args.pictures_output_dir, temp_dir)
+    with open(args.output_tsv, 'w') as fh:
+        writer = csv.writer(fh, delimiter='\t', quoting=csv.QUOTE_ALL)
+        for row in matrix:
+            writer.writerow(row)
 
 
 def process_files(questions_compressed, pictures_pdf, pictures_dir, temp_dir):
@@ -28,11 +34,8 @@ def process_files(questions_compressed, pictures_pdf, pictures_dir, temp_dir):
     question_list = parse_text_from_pdf(questions_compressed, temp_dir)
     image_numbers = extract_image_numbers(pictures_pdf, temp_dir)
     filetype_map = extract_images(pictures_pdf, pictures_dir, image_numbers)
-    output_matrix = create_output_matrix(question_list, correct_answers,
-                                         filetype_map)
-
-    for line in output_matrix:
-        print(line)
+    return create_output_matrix(question_list, correct_answers,
+                                filetype_map)
 
 
 def decompress_questions_pdf(source: str, destination: str) -> None:
@@ -157,6 +160,12 @@ def create_output_matrix(question_list: List[Tuple[Union[str, int], ...]],
                          correct_answers: List[int],
                          filetype_map: Mapping[int, str]) -> List[List[str]]:
     assert(len(question_list) == len(correct_answers))
+
+    def escape(string):
+        # Occasionally there's a lurking pre-escaped quotation mark,
+        # so we remove any existing backslashes first.
+        return string.replace('\\', '').replace('"', r'\"')
+
     result = []
     for i in range(len(question_list)):
         question, img_number, ans_a, ans_b, ans_c, ans_d = question_list[i]
@@ -167,8 +176,9 @@ def create_output_matrix(question_list: List[Tuple[Union[str, int], ...]],
             img_html = '<img src="%s.%s" alt="Abbildung %d"><br>' % \
                        (make_image_name(img_number), filetype_map[img_number],
                         img_number)
-            question = img_html + question
-        result.append([question, correct_answer] + answers)
+            question = img_html + escape(question)
+        result.append([question, escape(correct_answer)] +
+                      list(map(escape, answers)))
     return result
 
 
@@ -211,7 +221,7 @@ def extract_images(images_pdf: str, images_dir: str,
             match = re.search(r'\.(...)$', filename)
             image_number = image_numbers[image_index]
             suffix = match.group(1)
-            filetype_map[image_number] = suffix
+
             dest = os.path.join(
                 images_dir,
                 make_image_name(image_numbers[image_index])
@@ -223,8 +233,10 @@ def extract_images(images_pdf: str, images_dir: str,
                 subprocess.run(['gm', 'convert', path, '-quality', '90',
                                 dest + '.jpg'], check=True)
                 os.unlink(path)
+                filetype_map[image_number] = 'jpg'
             else:
                 os.rename(path, dest + '.' + suffix)
+                filetype_map[image_number] = suffix
             image_index += 1
 
     return filetype_map
