@@ -6,7 +6,7 @@ import tempfile
 import os
 import re
 import sys
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Mapping
 from enum import Enum
 
 
@@ -26,14 +26,13 @@ def process_files(questions_compressed, pictures_pdf, pictures_dir, temp_dir):
     decompress_questions_pdf(questions_compressed, questions_file)
     correct_answers = construct_correct_answer_list(questions_file)
     question_list = parse_text_from_pdf(questions_compressed, temp_dir)
-    output_matrix = create_output_matrix(question_list, correct_answers)
     image_numbers = extract_image_numbers(pictures_pdf, temp_dir)
-    extract_images(pictures_pdf, pictures_dir, image_numbers)
+    filetype_map = extract_images(pictures_pdf, pictures_dir, image_numbers)
+    output_matrix = create_output_matrix(question_list, correct_answers,
+                                         filetype_map)
 
-    # for line in output_matrix:
-    #     print(line)
-    # print(image_numbers)
-    # print(len(image_numbers))
+    for line in output_matrix:
+        print(line)
 
 
 def decompress_questions_pdf(source: str, destination: str) -> None:
@@ -155,7 +154,8 @@ def parse_text_from_pdf(questions_pdf: str, temp_dir: str) -> \
 
 
 def create_output_matrix(question_list: List[Tuple[Union[str, int], ...]],
-                         correct_answers: List[int]) -> List[List[str]]:
+                         correct_answers: List[int],
+                         filetype_map: Mapping[int, str]) -> List[List[str]]:
     assert(len(question_list) == len(correct_answers))
     result = []
     for i in range(len(question_list)):
@@ -164,9 +164,9 @@ def create_output_matrix(question_list: List[Tuple[Union[str, int], ...]],
         answers = [ans_a, ans_b, ans_c, ans_d]
         correct_answer = answers.pop(correct_index)
         if img_number != 0:
-            # We assume that all images are (or have been converted to) PNGs
-            img_html = '<img src="%s.png" alt="Abbildung %d"><br>' % \
-                       (make_image_name(img_number), img_number)
+            img_html = '<img src="%s.%s" alt="Abbildung %d"><br>' % \
+                       (make_image_name(img_number), filetype_map[img_number],
+                        img_number)
             question = img_html + question
         result.append([question, correct_answer] + answers)
     return result
@@ -187,34 +187,47 @@ def extract_image_numbers(images_filename: str, temp_dir: str) -> List[int]:
 
 
 def extract_images(images_pdf: str, images_dir: str,
-                   image_numbers: List[int]) -> None:
+                   image_numbers: List[int]) -> Mapping[int, str]:
     # Empty the directory of any existing files
     for root, dirs, files in os.walk(images_dir):
         for f in files:
             os.unlink(os.path.join(root, f))
-    # We take the lazy option here by asking pdfimages to convert everything
-    # to PNGs. This increases the total size of the images from ~24 MB to
-    # ~77 MB, but saves (1) fiddling about with image extensions, which would
-    # then need to be synced with the img tags in the CSV output, and (2)
-    # explicitly converting the TIFFs, which (apparently) aren't supported in
-    # AnkiDroid.
-    subprocess.run(['pdfimages', '-png', images_pdf,
+
+    subprocess.run(['pdfimages', '-all', images_pdf,
                     os.path.join(images_dir, 'x')])
 
+    filetype_map = {}
     image_index = 0
     for filename in sorted(os.listdir(images_dir)):
         path = os.path.join(images_dir, filename)
         stat = os.stat(path)
         if (filename in ['x-089.png', 'x-105.png'] or
                 stat.st_size in [78247, 25220]):
+            # Discard unwanted images.
+            # The PNGs in the headers have one of two known sizes.
+            # Numbers 089 and 105 are blank.
             os.unlink(path)
         else:
+            match = re.search(r'\.(...)$', filename)
+            image_number = image_numbers[image_index]
+            suffix = match.group(1)
+            filetype_map[image_number] = suffix
             dest = os.path.join(
                 images_dir,
-                make_image_name(image_numbers[image_index]) + '.png'
+                make_image_name(image_numbers[image_index])
             )
-            os.rename(path, dest)
+            if suffix == 'tif':
+                # AnkiDroid apparently can't handle TIFFs, so we convert them
+                # to a supported format. The two TIFFs in this collection are
+                # photographs, so JPEG is a reasonable choice.
+                subprocess.run(['gm', 'convert', path, '-quality', '90',
+                                dest + '.jpg'], check=True)
+                os.unlink(path)
+            else:
+                os.rename(path, dest + '.' + suffix)
             image_index += 1
+
+    return filetype_map
 
 
 def make_image_name(image_number: int) -> str:
