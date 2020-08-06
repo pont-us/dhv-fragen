@@ -1,0 +1,45 @@
+# dhv-fragen: convert DHV questions to an Anki-friendly form
+
+(DHV E-Learning Prüfungsfragen A-Schein zu Karteikarten
+konvertieren.)
+
+The theory test for the German ‘A-Schein’ paragliding licence
+contains multiple-choice questions drawn from a published list.
+Registered users of https://dhv.onlearning.at/ can download
+the list in PDF form. This Python script converts PDFs downloaded
+from onlearning into a tab-separated text file and accompanying
+directory of images suitable for import into the
+https://apps.ankiweb.net/[Anki] flashcard system.
+
+Notes:
+
+ - The script runs on Python >=3.5 and requires the following
+   external utilities:
+   `pdftotext`, `pdfimages`, `qpdf`, `gm` (GraphicsMagick)
+
+ - This repository does not contain any of the questions
+   themselves, because I assume that I don't have the right to
+   redistribute them. You need to provide your own PDFs to do
+   anything useful with this script.
+
+ - The script was developed for Version 5 (22.02.2016) of the
+   question set. There are a couple of quirks in the source
+   PDFs that need special-case handling, so it will probably
+   fail on other versions.
+
+ - The script takes two input PDFs: "Lernstoff.pdf", the
+   list of questions (the version _with_ the correct answers
+   marked), and "Bilder.pdf", the accompanying illustrations.
+
+ - The script produces a tab-separated text file that can be
+   imported into Anki, and an accompanying directory of images.
+   The images should be copied into Anki's media directory.
+
+ - The output file has five columns: question, correct answer,
+   and three wrong answers. It's designed for use with the
+   https://github.com/edjane-stewart/anki-quiz-deck[anki-quiz-deck]
+   template, which randomizes the order of answers every time
+   a card is shown.
+
+Copyright 2020 Pontus Lurcock (pont@talvi.net).
+Released under the MIT licence.

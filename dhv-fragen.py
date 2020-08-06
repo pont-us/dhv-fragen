@@ -1,5 +1,14 @@
 #!/usr/bin/python3
 
+"""Convert DHV A-Schein paragliding test PDFs to a tab-separated text file.
+
+See README.adoc for more details.
+
+Copyright (c) 2020 Pontus Lurcock
+Released under the MIT License; see the accompanying LICENSE.txt file.
+"""
+
+
 import argparse
 import subprocess
 import tempfile
@@ -55,7 +64,7 @@ def construct_correct_answer_list(questions_file: str) -> List[int]:
     with open(questions_file, 'r', encoding='iso-8859-1') as fh:
         answer_group = ''
         for line in fh.readlines():
-            # Match an empty box (wrong answer) or filled box (correct
+            # Match an empty box S (wrong answer) or filled box B (correct
             # answer)
             match = re.match(r'42\.52 \d+\.\d+ 8\.50 -8\.50 re ([BS])',
                              line.strip())
