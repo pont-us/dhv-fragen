@@ -23,8 +23,12 @@ import csv
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('questions_pdf')
-    parser.add_argument('pictures_pdf')
-    parser.add_argument('pictures_output_dir')
+    parser.add_argument(
+        'pictures_pdf', help='Use "-" if no pictures are to be processed'
+    )
+    parser.add_argument(
+        'pictures_output_dir', help='Use "-" if no pictures are to be processed'
+    )
     parser.add_argument('output_tsv')
     args = parser.parse_args()
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -41,8 +45,11 @@ def process_files(questions_compressed, pictures_pdf, pictures_dir, temp_dir):
     decompress_questions_pdf(questions_compressed, questions_file)
     correct_answers = construct_correct_answer_list(questions_file)
     question_list = parse_text_from_pdf(questions_compressed, temp_dir)
-    image_numbers = extract_image_numbers(pictures_pdf, temp_dir)
-    filetype_map = extract_images(pictures_pdf, pictures_dir, image_numbers)
+    if pictures_pdf != "-":
+        image_numbers = extract_image_numbers(pictures_pdf, temp_dir)
+        filetype_map = extract_images(pictures_pdf, pictures_dir, image_numbers)
+    else:
+        filetype_map = {}
     return create_output_matrix(question_list, correct_answers,
                                 filetype_map)
 

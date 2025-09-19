@@ -11,6 +11,9 @@ from onlearning into a tab-separated text file and accompanying
 directory of images suitable for import into the
 https://apps.ankiweb.net/[Anki] flashcard system.
 
+The script has also been used successfully with the questions
+for the winch launching (Windenschlepp) theory test.
+
 Notes:
 
  - The script runs on Python >=3.5 and requires the following
@@ -40,6 +43,11 @@ Notes:
    https://github.com/edjane-stewart/anki-quiz-deck[anki-quiz-deck]
    template, which randomizes the order of answers every time
    a card is shown.
+
+ - If the questions have no pictures (as is the case for the
+   winch questions), or if you don't want to include pictures,
+   you can specify `-` (a hyphen-minus character) as the path
+   for the illustrations PDF and images
 
 Copyright 2020 Pontus Lurcock (pont@talvi.net).
 Released under the MIT licence.
