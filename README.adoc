@@ -28,11 +28,11 @@ Notes:
  - The script was developed for Version 5 (22.02.2016) of the
    question set. There are a couple of quirks in the source
    PDFs that need special-case handling, so it will probably
-   fail on other versions.
+   fail on other versions, but it should be easy to adapt.
 
- - The script takes two input PDFs: "Lernstoff.pdf", the
+ - The script takes two input PDFs, one containing the
    list of questions (the version _with_ the correct answers
-   marked), and "Bilder.pdf", the accompanying illustrations.
+   marked), and the other the accompanying illustrations.
 
  - The script produces a tab-separated text file that can be
    imported into Anki, and an accompanying directory of images.
@@ -47,7 +47,7 @@ Notes:
  - If the questions have no pictures (as is the case for the
    winch questions), or if you don't want to include pictures,
    you can specify `-` (a hyphen-minus character) as the path
-   for the illustrations PDF and images
+   for the illustrations PDF and images.
 
-Copyright 2020 Pontus Lurcock (pont@talvi.net).
+Copyright 2020, 2025 Pontus Lurcock (pont@talvi.net).
 Released under the MIT licence.
